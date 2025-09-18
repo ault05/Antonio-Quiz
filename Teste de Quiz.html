@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz de Juros Simples</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right top, #65a30d, #f97316, #ef4444);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            max-width: 90%;
+            width: 600px;
+            padding: 2.5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        .question-card, .results-card {
+            border: 2px solid #a3e635;
+            background-color: #f0fdf4;
+            padding: 1.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .option-button {
+            background-color: #fef9c3;
+            color: #4a4a4a;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .option-button:hover {
+            background-color: #fde68a;
+            transform: translateY(-2px);
+        }
+        .option-button.selected {
+            background-color: #fcd34d;
+            border-color: #d97706;
+            transform: scale(1.05);
+        }
+        .option-button.correct {
+            background-color: #86efac;
+            border-color: #16a34a;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+        .option-button.incorrect {
+            background-color: #fca5a5;
+            border-color: #dc2626;
+            color: white;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1.05); }
+            50% { transform: scale(1.1); }
+        }
+        .explanation-text {
+            color: #1a202c;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-top: -1rem;
+            text-align: left;
+            border-left: 4px solid #a3e635;
+            padding-left: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 class="text-4xl font-bold text-gray-800 mb-6 drop-shadow-md">Quiz de Juros Simples</h1>
+        
+        <!-- Seleção de Perguntas -->
+        <div id="selection-screen">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Escolha a quantidade de perguntas:</h2>
+            <div class="flex flex-col md:flex-row justify-center items-center gap-4 mb-6">
+                <label class="flex items-center gap-2 text-xl font-medium text-gray-600">
+                    <input type="radio" name="numQuestions" value="5" checked class="h-5 w-5 text-lime-500"> 5 Perguntas
+                </label>
+                <label class="flex items-center gap-2 text-xl font-medium text-gray-600">
+                    <input type="radio" name="numQuestions" value="10" class="h-5 w-5 text-lime-500"> 10 Perguntas
+                </label>
+                <label class="flex items-center gap-2 text-xl font-medium text-gray-600">
+                    <input type="radio" name="numQuestions" value="15" class="h-5 w-5 text-lime-500"> 15 Perguntas
+                </label>
+            </div>
+            <button id="startButton" class="bg-gradient-to-r from-green-500 to-lime-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg hover:from-green-600 hover:to-lime-700 transition transform hover:scale-105">
+                Iniciar Quiz!
+            </button>
+        </div>
+
+        <!-- Tela do Quiz -->
+        <div id="quiz-screen" class="question-card">
+            <h3 id="question-text" class="text-xl md:text-2xl font-bold text-gray-800 mb-4"></h3>
+            <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+            <p id="feedback-text" class="text-red-500 font-semibold text-lg"></p>
+            <p id="explanation-text" class="explanation-text"></p>
+            <button id="nextButton" class="bg-gray-400 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg cursor-not-allowed transition transform hover:scale-105" disabled>
+                Próxima Pergunta
+            </button>
+        </div>
+
+        <!-- Tela de Resultados -->
+        <div id="results-screen" class="results-card">
+            <h2 class="text-3xl font-bold text-lime-600 mb-4">Quiz Concluído!</h2>
+            <p id="score-text" class="text-4xl font-extrabold text-gray-800 mb-6">
+                Sua pontuação: <span id="score-value">0</span> / <span id="total-questions">0</span>
+            </p>
+            <button id="restartButton" class="bg-gradient-to-r from-green-500 to-lime-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg hover:from-green-600 hover:to-lime-700 transition transform hover:scale-105">
+                Reiniciar
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Array de perguntas sobre Juros Simples
+        const allQuestions = [
+            {
+                question: "O que é a taxa de juros (i)?",
+                options: ["O valor inicial do capital", "O valor total a ser pago", "A porcentagem aplicada sobre o capital em um determinado período", "O tempo da aplicação"],
+                correctAnswerIndex: 2,
+                explanation: "A taxa de juros (i) é a porcentagem que define o custo do dinheiro ou a remuneração de um investimento em um período de tempo específico. A sua correta interpretação é fundamental para o cálculo dos juros."
+            },
+            {
+                question: "Calcule os juros de um capital de R$ 1.000,00 aplicado a uma taxa de 5% ao mês por 2 meses.",
+                options: ["R$ 50,00", "R$ 100,00", "R$ 150,00", "R$ 200,00"],
+                correctAnswerIndex: 1,
+                explanation: "Para calcular os juros, usamos a fórmula J = C * i * t. Neste caso, J = 1.000 * 0.05 * 2, que resulta em R$ 100,00."
+            },
+            {
+                question: "A fórmula para calcular os juros simples é:",
+                options: ["J = C * i + t", "J = C / i * t", "J = C * i * t", "J = C * t - i"],
+                correctAnswerIndex: 2,
+                explanation: "A fórmula correta é J = C * i * t, onde 'J' é o juros, 'C' é o capital, 'i' é a taxa de juros e 't' é o tempo. Esta fórmula é a base para todos os cálculos de juros simples."
+            },
+            {
+                question: "Um capital de R$ 5.000,00 foi aplicado a uma taxa de juros simples de 10% ao ano. Qual o montante após 3 anos?",
+                options: ["R$ 1.500,00", "R$ 5.500,00", "R$ 6.000,00", "R$ 6.500,00"],
+                correctAnswerIndex: 3,
+                explanation: "Primeiro, calcule os juros: J = 5.000 * 0.10 * 3 = R$ 1.500,00. O montante é a soma do capital com os juros: M = C + J = 5.000 + 1.500 = R$ 6.500,00."
+            },
+            {
+                question: "Para que o cálculo dos juros simples seja correto, o tempo e a taxa de juros devem estar:",
+                options: ["Em unidades de medida diferentes", "Na mesma unidade de tempo", "Em qualquer unidade, pois não afeta o resultado", "Sempre em anos"],
+                correctAnswerIndex: 1,
+                explanation: "É fundamental que a taxa de juros e o tempo de aplicação estejam na mesma unidade de tempo (por exemplo, ambos em meses ou ambos em anos) para que o cálculo seja preciso."
+            },
+            {
+                question: "Se um investimento de R$ 2.000,00 rende R$ 200,00 em 1 ano, qual a taxa de juros simples anual?",
+                options: ["5%", "10%", "15%", "20%"],
+                correctAnswerIndex: 1,
+                explanation: "A fórmula para a taxa é i = J / (C * t). Substituindo os valores, i = 200 / (2.000 * 1) = 0.10. Em porcentagem, isso é 10%."
+            },
+            {
+                question: "O que significa 'Montante' (M) em juros simples?",
+                options: ["O valor dos juros acumulados", "O valor inicial do capital", "O valor final, que é a soma do capital com os juros", "O valor da taxa de juros"],
+                correctAnswerIndex: 2,
+                explanation: "O montante é o valor total ao final da aplicação, representando a soma do capital inicial com os juros gerados. É o que você recebe de volta em um investimento ou o que deve pagar em um empréstimo."
+            },
+            {
+                question: "Calcule o montante de um capital de R$ 800,00 aplicado por 6 meses a uma taxa de 2% ao mês.",
+                options: ["R$ 896,00", "R$ 816,00", "R$ 900,00", "R$ 848,00"],
+                correctAnswerIndex: 0,
+                explanation: "Primeiro, calculamos os juros: J = 800 * 0.02 * 6 = R$ 96,00. O montante é M = C + J = 800 + 96 = R$ 896,00."
+            },
+            {
+                question: "Se um capital duplica de valor em 5 anos, qual a taxa de juros simples anual?",
+                options: ["10%", "15%", "20%", "25%"],
+                correctAnswerIndex: 2,
+                explanation: "Para duplicar, os juros devem ser iguais ao capital inicial (J = C). Usando a fórmula J = C * i * t, temos C = C * i * 5. Simplificando, 1 = i * 5, então i = 1/5 = 0.20, ou 20%."
+            },
+            {
+                question: "Qual o capital inicial que, a 3% ao mês, gerou R$ 90,00 de juros em 3 meses?",
+                options: ["R$ 500,00", "R$ 1.000,00", "R$ 1.500,00", "R$ 2.000,00"],
+                correctAnswerIndex: 0,
+                explanation: "Para encontrar o capital, usamos a fórmula C = J / (i * t). C = 90 / (0.03 * 3) = 90 / 0.09 = R$ 1.000,00."
+            },
+            {
+                question: "A capitalização é feita sobre o capital inicial para calcular qual tipo de juros?",
+                options: ["Juros Compostos", "Juros Simples", "Juros Fixos", "Juros Variáveis"],
+                correctAnswerIndex: 1,
+                explanation: "Nos juros simples, o cálculo incide sempre sobre o valor inicial do capital. Nos juros compostos, a capitalização é sobre o montante acumulado a cada período."
+            },
+            {
+                question: "Qual o tempo (em meses) necessário para um capital de R$ 3.000,00 render R$ 360,00 a uma taxa de 2% ao mês?",
+                options: ["6 meses", "4 meses", "8 meses", "12 meses"],
+                correctAnswerIndex: 1,
+                explanation: "Para encontrar o tempo, usamos a fórmula t = J / (C * i). t = 360 / (3.000 * 0.02) = 360 / 60 = 6 meses."
+            },
+            {
+                question: "Se a taxa de juros for 12% ao ano, qual a taxa equivalente ao mês?",
+                options: ["1%", "2%", "12%", "0.5%"],
+                correctAnswerIndex: 0,
+                explanation: "Para encontrar a taxa mensal equivalente em juros simples, basta dividir a taxa anual pelo número de meses no ano: 12% / 12 = 1% ao mês."
+            },
+            {
+                question: "Um empréstimo de R$ 20.000,00 foi pago em 5 anos, com um total de R$ 5.000,00 de juros. Qual a taxa de juros anual?",
+                options: ["2.5%", "5%", "10%", "25%"],
+                correctAnswerIndex: 1,
+                explanation: "Para encontrar a taxa, usamos a fórmula i = J / (C * t). i = 5.000 / (20.000 * 5) = 5.000 / 100.000 = 0.05. Em porcentagem, é 5%."
+            },
+            {
+                question: "O que é 'Capital' (C)?",
+                options: ["A taxa de juros", "O tempo da aplicação", "O valor dos juros", "O valor principal (inicial) da aplicação ou empréstimo"],
+                correctAnswerIndex: 3,
+                explanation: "O capital é o valor inicial de qualquer operação financeira, seja o dinheiro que você investe ou o valor que você pega emprestado."
+            },
+            {
+                question: "Uma aplicação de R$ 4.000,00 rendeu R$ 480,00 em 2 anos. Qual a taxa de juros simples anual?",
+                options: ["3%", "6%", "9%", "12%"],
+                correctAnswerIndex: 1,
+                explanation: "Para encontrar a taxa, usamos i = J / (C * t). i = 480 / (4.000 * 2) = 480 / 8.000 = 0.06. Em porcentagem, é 6%."
+            },
+            {
+                question: "Quanto tempo levará para um capital de R$ 500,00 triplicar, a uma taxa de juros simples de 10% ao ano?",
+                options: ["10 anos", "15 anos", "20 anos", "25 anos"],
+                correctAnswerIndex: 2,
+                explanation: "Para triplicar, os juros devem ser o dobro do capital inicial (J = 2 * C). Usando a fórmula t = J / (C * i), temos t = (2 * C) / (C * 0.10) = 2 / 0.10 = 20 anos."
+            },
+            {
+                question: "Calcule os juros de um capital de R$ 7.000,00 a uma taxa de 1.5% ao mês, durante 4 meses.",
+                options: ["R$ 420,00", "R$ 450,00", "R$ 480,00", "R$ 500,00"],
+                correctAnswerIndex: 0,
+                explanation: "A fórmula é J = C * i * t. J = 7.000 * 0.015 * 4 = R$ 420,00."
+            }
+        ];
+
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let selectedOption = null;
+        let answered = false;
+
+        const startButton = document.getElementById('startButton');
+        const nextButton = document.getElementById('nextButton');
+        const restartButton = document.getElementById('restartButton');
+        const selectionScreen = document.getElementById('selection-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const scoreValue = document.getElementById('score-value');
+        const totalQuestions = document.getElementById('total-questions');
+        const feedbackText = document.getElementById('feedback-text');
+        const explanationText = document.getElementById('explanation-text');
+
+        // Embaralha o array de perguntas
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startQuiz() {
+            const numQuestions = document.querySelector('input[name="numQuestions"]:checked').value;
+            shuffleArray(allQuestions);
+            questions = allQuestions.slice(0, numQuestions);
+            currentQuestionIndex = 0;
+            score = 0;
+            answered = false;
+            
+            selectionScreen.style.display = 'none';
+            quizScreen.style.display = 'flex';
+            
+            totalQuestions.textContent = questions.length;
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                showResults();
+                return;
+            }
+
+            answered = false;
+            selectedOption = null;
+            nextButton.disabled = true;
+            nextButton.classList.add('cursor-not-allowed', 'bg-gray-400', 'hover:scale-100');
+            nextButton.classList.remove('bg-green-500', 'hover:from-green-600', 'hover:to-lime-700', 'hover:scale-105');
+            feedbackText.textContent = '';
+            explanationText.textContent = '';
+            
+            const currentQuestion = questions[currentQuestionIndex];
+            questionText.textContent = `Pergunta ${currentQuestionIndex + 1}: ${currentQuestion.question}`;
+            optionsContainer.innerHTML = '';
+            
+            currentQuestion.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-button');
+                button.onclick = () => checkAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+        }
+        
+        function checkAnswer(selectedIndex) {
+            if (answered) return;
+            answered = true;
+            
+            const currentQuestion = questions[currentQuestionIndex];
+            const optionButtons = document.querySelectorAll('.option-button');
+            
+            selectedOption = selectedIndex;
+            
+            optionButtons.forEach((button, index) => {
+                button.classList.remove('selected');
+                button.disabled = true;
+                if (index === selectedIndex) {
+                    button.classList.add('selected');
+                }
+            });
+            
+            if (selectedIndex === currentQuestion.correctAnswerIndex) {
+                score++;
+                optionButtons[selectedIndex].classList.add('correct');
+                feedbackText.textContent = 'Resposta correta!';
+                feedbackText.classList.remove('text-red-500');
+                feedbackText.classList.add('text-green-600');
+            } else {
+                optionButtons[selectedIndex].classList.add('incorrect');
+                optionButtons[currentQuestion.correctAnswerIndex].classList.add('correct');
+                feedbackText.textContent = 'Resposta incorreta.';
+                feedbackText.classList.remove('text-green-600');
+                feedbackText.classList.add('text-red-500');
+            }
+            
+            // Adiciona a explicação após a resposta
+            explanationText.textContent = currentQuestion.explanation;
+
+            nextButton.disabled = false;
+            nextButton.classList.remove('cursor-not-allowed', 'bg-gray-400');
+            nextButton.classList.add('bg-gradient-to-r', 'from-green-500', 'to-lime-600');
+            
+        }
+        
+        function nextQuestion() {
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+        
+        function showResults() {
+            quizScreen.style.display = 'none';
+            resultsScreen.style.display = 'flex';
+            scoreValue.textContent = score;
+        }
+
+        function restartQuiz() {
+            resultsScreen.style.display = 'none';
+            selectionScreen.style.display = 'flex';
+        }
+
+        // Event Listeners
+        startButton.addEventListener('click', startQuiz);
+        nextButton.addEventListener('click', nextQuestion);
+        restartButton.addEventListener('click', restartQuiz);
+    </script>
+
+</body>
+</html>
